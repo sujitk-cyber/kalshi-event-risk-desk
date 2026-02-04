@@ -46,6 +46,8 @@ export KALSHI_API_KEY=your_key
 export KALSHI_PRIVATE_KEY=/path/to/private_key.pem
 ```
 
+**API keys are required for private endpoints (portfolio/trading) and production access.** Public demo/market data works without keys.
+
 ## UI
 The UI is served from `ui/` by the C++ server.
 
