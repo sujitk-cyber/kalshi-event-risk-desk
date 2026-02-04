@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Kalshi Event Risk Desk</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <script defer src="app.js"></script>
+  </head>
+  <body>
+    <div class="page">
+      <header class="hero">
+        <div>
+          <p class="kicker">Kalshi Event Risk Desk</p>
+          <h1>Real-time market signals, engineered for execution.</h1>
+          <p class="subtitle">
+            Streaming probability markets with microstructure features, shock alerts, and a lightweight risk console.
+          </p>
+        </div>
+        <div class="hero-actions">
+          <div class="status" id="health-status">
+            <span class="dot" id="health-dot"></span>
+            <span id="health-text">Checking API…</span>
+          </div>
+          <button class="primary" id="refresh-btn">Refresh Markets</button>
+          <div class="refresh-meta">
+            <label for="refresh-limit">Limit</label>
+            <input id="refresh-limit" type="number" min="10" max="300" value="100" />
+          </div>
+        </div>
+      </header>
+
+      <section class="grid">
+        <article class="card focus">
+          <div class="card-header">
+            <h2>Market Focus</h2>
+            <div class="pill">Live features</div>
+          </div>
+          <div class="field">
+            <label for="ticker-input">Ticker</label>
+            <div class="input-row">
+              <input id="ticker-input" placeholder="EX: FED-2026-DEC" />
+              <button class="ghost" id="load-features">Load</button>
+            </div>
+          </div>
+          <div class="stats">
+            <div>
+              <span class="label">Mid</span>
+              <span class="value" id="stat-mid">--</span>
+            </div>
+            <div>
+              <span class="label">Spread</span>
+              <span class="value" id="stat-spread">--</span>
+            </div>
+            <div>
+              <span class="label">Implied Prob</span>
+              <span class="value" id="stat-prob">--</span>
+            </div>
+            <div>
+              <span class="label">Volume</span>
+              <span class="value" id="stat-volume">--</span>
+            </div>
+          </div>
+          <div class="trend">
+            <canvas id="feature-chart" width="640" height="220"></canvas>
+          </div>
+        </article>
+
+        <article class="card alerts">
+          <div class="card-header">
+            <h2>Signal Feed</h2>
+            <div class="pill">Alerts</div>
+          </div>
+          <ul id="alert-list" class="alert-list">
+            <li class="empty">No alerts yet. Run a refresh to ingest markets.</li>
+          </ul>
+        </article>
+
+        <article class="card system">
+          <div class="card-header">
+            <h2>System</h2>
+            <div class="pill">Snapshot</div>
+          </div>
+          <div class="system-grid">
+            <div>
+              <span class="label">Endpoint</span>
+              <span class="value" id="system-endpoint">/</span>
+            </div>
+            <div>
+              <span class="label">Last Refresh</span>
+              <span class="value" id="system-refresh">--</span>
+            </div>
+            <div>
+              <span class="label">Alert Count</span>
+              <span class="value" id="system-alerts">0</span>
+            </div>
+            <div>
+              <span class="label">Features</span>
+              <span class="value" id="system-features">0</span>
+            </div>
+          </div>
+          <div class="footnote">
+            Data updates every 10 seconds. Manual refresh triggers a market ingest.
+          </div>
+        </article>
+      </section>
+    </div>
+  </body>
+</html>
