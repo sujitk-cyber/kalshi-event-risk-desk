@@ -5,3 +5,4 @@ build/
 *.dylib
 *.db
 .DS_Store
+mock_server.py

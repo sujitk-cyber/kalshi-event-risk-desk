@@ -33,4 +33,12 @@ struct Alert {
   std::string details;
 };
 
+struct EventSummary {
+  std::string event_ticker;
+  std::string category;
+  int market_count = 0;
+  double total_volume = 0.0;
+  std::string updated_at;
+};
+
 }  // namespace analytics

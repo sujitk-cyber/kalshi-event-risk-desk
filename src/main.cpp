@@ -49,12 +49,14 @@ int main(int argc, char **argv) {
   const std::string db_path = utils::GetEnv("KALSHI_DB_PATH", "data/kalshi.db");
   const int port = utils::GetEnvInt("KALSHI_PORT", 8080);
   const int limit = utils::GetEnvInt("KALSHI_REFRESH_LIMIT", 100);
+  const double jump_threshold = utils::GetEnvDouble("KALSHI_ALERT_JUMP", 5.0);
+  const double spread_threshold = utils::GetEnvDouble("KALSHI_ALERT_SPREAD", 10.0);
 
   auto http = std::make_shared<utils::HttpClient>();
   auto client = std::make_shared<kalshi::KalshiClient>(config, http);
   auto store = std::make_shared<storage::SQLiteStore>(db_path);
   auto features = std::make_shared<analytics::FeatureEngine>();
-  auto alerts = std::make_shared<analytics::AlertEngine>();
+  auto alerts = std::make_shared<analytics::AlertEngine>(jump_threshold, spread_threshold);
 
   store->Init();
 

@@ -7,5 +7,6 @@ namespace utils {
 std::string GetEnv(const std::string &key, const std::string &default_value = "");
 bool GetEnvBool(const std::string &key, bool default_value = false);
 int GetEnvInt(const std::string &key, int default_value = 0);
+double GetEnvDouble(const std::string &key, double default_value = 0.0);
 
 }

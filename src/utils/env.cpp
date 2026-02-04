@@ -25,4 +25,12 @@ int GetEnvInt(const std::string &key, int default_value) {
   return std::atoi(value.c_str());
 }
 
+double GetEnvDouble(const std::string &key, double default_value) {
+  const std::string value = GetEnv(key, "");
+  if (value.empty()) {
+    return default_value;
+  }
+  return std::atof(value.c_str());
+}
+
 }  // namespace utils

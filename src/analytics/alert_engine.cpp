@@ -5,6 +5,9 @@
 
 namespace analytics {
 
+AlertEngine::AlertEngine(double jump_threshold, double spread_threshold)
+    : jump_threshold_(jump_threshold), spread_threshold_(spread_threshold) {}
+
 std::vector<Alert> AlertEngine::Evaluate(const FeatureRow &feature) {
   std::vector<Alert> alerts;
 
@@ -12,7 +15,7 @@ std::vector<Alert> AlertEngine::Evaluate(const FeatureRow &feature) {
   if (iter != last_feature_.end()) {
     const FeatureRow &prev = iter->second;
     const double jump = std::abs(feature.mid - prev.mid);
-    if (jump >= 5.0 && feature.mid > 0.0 && prev.mid > 0.0) {
+    if (jump >= jump_threshold_ && feature.mid > 0.0 && prev.mid > 0.0) {
       Alert alert;
       alert.ticker = feature.ticker;
       alert.ts = feature.ts;
@@ -24,7 +27,7 @@ std::vector<Alert> AlertEngine::Evaluate(const FeatureRow &feature) {
       alerts.push_back(alert);
     }
 
-    if (feature.spread >= 10.0) {
+    if (feature.spread >= spread_threshold_) {
       Alert alert;
       alert.ticker = feature.ticker;
       alert.ts = feature.ts;

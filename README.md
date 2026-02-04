@@ -55,6 +55,7 @@ open http://localhost:8080
 
 ## API Endpoints
 - `GET /health`
+- `GET /events?limit=200&search=...`
 - `GET /markets?limit=200&search=...`
 - `POST /markets/refresh?limit=100`
 - `GET /alerts?limit=50`
@@ -70,6 +71,8 @@ Environment variables:
 - `KALSHI_PORT` HTTP server port
 - `KALSHI_REFRESH_LIMIT` number of markets to fetch
 - `KALSHI_REFRESH_ON_START` true/false
+- `KALSHI_ALERT_JUMP` price jump threshold (default 5.0)
+- `KALSHI_ALERT_SPREAD` spread threshold (default 10.0)
 
 ## Build Troubleshooting (macOS)
 If CMake can’t find dependencies, install them locally:

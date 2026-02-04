@@ -249,6 +249,51 @@ std::vector<analytics::MarketSnapshot> SQLiteStore::ListMarkets(int limit, const
   return results;
 }
 
+std::vector<analytics::EventSummary> SQLiteStore::ListEvents(int limit, const std::string &search) const {
+  std::lock_guard<std::mutex> lock(mutex_);
+  std::vector<analytics::EventSummary> results;
+  std::string sql =
+      "SELECT event_ticker, category, COUNT(*), COALESCE(SUM(volume), 0), MAX(updated_at) "
+      "FROM markets "
+      "WHERE event_ticker IS NOT NULL AND event_ticker != ''";
+  bool has_search = !search.empty();
+  if (has_search) {
+    sql += " AND (event_ticker LIKE ? OR category LIKE ?)";
+  }
+  sql += " GROUP BY event_ticker, category ORDER BY MAX(updated_at) DESC LIMIT ?";
+
+  sqlite3_stmt *stmt = nullptr;
+  if (sqlite3_prepare_v2(db_, sql.c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
+    spdlog::error("Failed to prepare list events");
+    return results;
+  }
+
+  int bind_index = 1;
+  std::string wildcard;
+  if (has_search) {
+    wildcard = "%" + search + "%";
+    sqlite3_bind_text(stmt, bind_index++, wildcard.c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, bind_index++, wildcard.c_str(), -1, SQLITE_TRANSIENT);
+  }
+  sqlite3_bind_int(stmt, bind_index, limit);
+
+  while (sqlite3_step(stmt) == SQLITE_ROW) {
+    analytics::EventSummary summary;
+    const unsigned char *event_ticker = sqlite3_column_text(stmt, 0);
+    const unsigned char *category = sqlite3_column_text(stmt, 1);
+    const unsigned char *updated_at = sqlite3_column_text(stmt, 4);
+    summary.event_ticker = event_ticker ? reinterpret_cast<const char *>(event_ticker) : "";
+    summary.category = category ? reinterpret_cast<const char *>(category) : "";
+    summary.market_count = sqlite3_column_int(stmt, 2);
+    summary.total_volume = sqlite3_column_double(stmt, 3);
+    summary.updated_at = updated_at ? reinterpret_cast<const char *>(updated_at) : "";
+    results.push_back(summary);
+  }
+
+  sqlite3_finalize(stmt);
+  return results;
+}
+
 void SQLiteStore::Exec(const std::string &sql) const {
   std::lock_guard<std::mutex> lock(mutex_);
   char *err = nullptr;

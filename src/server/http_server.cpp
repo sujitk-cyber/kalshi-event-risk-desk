@@ -83,6 +83,30 @@ void HttpServer::RegisterRoutes() {
     res.set_content(out.dump(2), "application/json");
   });
 
+  server_.Get("/events", [this](const httplib::Request &req, httplib::Response &res) {
+    int limit = 200;
+    if (req.has_param("limit")) {
+      limit = std::stoi(req.get_param_value("limit"));
+    }
+    std::string search;
+    if (req.has_param("search")) {
+      search = req.get_param_value("search");
+    }
+
+    const auto events = store_->ListEvents(limit, search);
+    nlohmann::json out = nlohmann::json::array();
+    for (const auto &event : events) {
+      out.push_back({
+          {"event_ticker", event.event_ticker},
+          {"category", event.category},
+          {"market_count", event.market_count},
+          {"total_volume", event.total_volume},
+          {"updated_at", event.updated_at},
+      });
+    }
+    res.set_content(out.dump(2), "application/json");
+  });
+
   server_.Post("/markets/refresh", [this](const httplib::Request &req, httplib::Response &res) {
     int limit = 100;
     if (req.has_param("limit")) {
