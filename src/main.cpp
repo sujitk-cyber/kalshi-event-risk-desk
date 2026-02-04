@@ -9,6 +9,7 @@
 #include <spdlog/spdlog.h>
 
 #include <curl/curl.h>
+#include <sqlite3.h>
 
 #include <memory>
 #include <string>
@@ -28,6 +29,8 @@ bool HasArg(int argc, char **argv, const std::string &flag) {
 
 int main(int argc, char **argv) {
   curl_global_init(CURL_GLOBAL_DEFAULT);
+  sqlite3_config(SQLITE_CONFIG_SERIALIZED);
+  sqlite3_initialize();
 
   const std::string env = utils::GetEnv("KALSHI_ENV", "demo");
   std::string base_url = utils::GetEnv("KALSHI_BASE_URL", "");
@@ -73,6 +76,7 @@ int main(int argc, char **argv) {
 
   server.Run(port);
 
+  sqlite3_shutdown();
   curl_global_cleanup();
   return 0;
 }

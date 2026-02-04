@@ -4,6 +4,7 @@
 
 #include <sqlite3.h>
 
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -25,8 +26,9 @@ class SQLiteStore {
   std::vector<analytics::MarketSnapshot> ListMarkets(int limit = 200, const std::string &search = "") const;
 
  private:
-  sqlite3 *db_ = nullptr;
+ sqlite3 *db_ = nullptr;
   std::string path_;
+  mutable std::mutex mutex_;
 
   void Exec(const std::string &sql) const;
 };

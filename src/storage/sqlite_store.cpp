@@ -10,6 +10,7 @@ SQLiteStore::SQLiteStore(const std::string &path) : path_(path) {
   if (sqlite3_open(path_.c_str(), &db_) != SQLITE_OK) {
     throw std::runtime_error("Failed to open sqlite db");
   }
+  sqlite3_busy_timeout(db_, 5000);
 }
 
 SQLiteStore::~SQLiteStore() {
@@ -54,6 +55,7 @@ void SQLiteStore::Init() {
 }
 
 void SQLiteStore::UpsertMarket(const analytics::MarketSnapshot &snapshot, const std::string &raw_json) {
+  std::lock_guard<std::mutex> lock(mutex_);
   const char *sql =
       "INSERT INTO markets (ticker, event_ticker, status, category, yes_bid, yes_ask, last_price, volume, updated_at, raw_json)"
       " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
@@ -93,6 +95,7 @@ void SQLiteStore::UpsertMarket(const analytics::MarketSnapshot &snapshot, const 
 }
 
 void SQLiteStore::InsertFeature(const analytics::FeatureRow &feature, const std::string &raw_json) {
+  std::lock_guard<std::mutex> lock(mutex_);
   const char *sql =
       "INSERT INTO features (ticker, ts, mid, spread, prob, volume, raw_json)"
       " VALUES (?, ?, ?, ?, ?, ?, ?)";
@@ -119,6 +122,7 @@ void SQLiteStore::InsertFeature(const analytics::FeatureRow &feature, const std:
 }
 
 void SQLiteStore::InsertAlert(const analytics::Alert &alert) {
+  std::lock_guard<std::mutex> lock(mutex_);
   const char *sql =
       "INSERT INTO alerts (ticker, ts, type, score, details)"
       " VALUES (?, ?, ?, ?, ?)";
@@ -143,6 +147,7 @@ void SQLiteStore::InsertAlert(const analytics::Alert &alert) {
 }
 
 std::vector<analytics::Alert> SQLiteStore::RecentAlerts(int limit) const {
+  std::lock_guard<std::mutex> lock(mutex_);
   std::vector<analytics::Alert> results;
   const char *sql = "SELECT ticker, ts, type, score, details FROM alerts ORDER BY id DESC LIMIT ?";
 
@@ -169,6 +174,7 @@ std::vector<analytics::Alert> SQLiteStore::RecentAlerts(int limit) const {
 }
 
 std::vector<analytics::FeatureRow> SQLiteStore::LatestFeatures(const std::string &ticker, int limit) const {
+  std::lock_guard<std::mutex> lock(mutex_);
   std::vector<analytics::FeatureRow> results;
   const char *sql =
       "SELECT ticker, ts, mid, spread, prob, volume FROM features WHERE ticker = ? ORDER BY id DESC LIMIT ?";
@@ -198,6 +204,7 @@ std::vector<analytics::FeatureRow> SQLiteStore::LatestFeatures(const std::string
 }
 
 std::vector<analytics::MarketSnapshot> SQLiteStore::ListMarkets(int limit, const std::string &search) const {
+  std::lock_guard<std::mutex> lock(mutex_);
   std::vector<analytics::MarketSnapshot> results;
   std::string sql =
       "SELECT ticker, event_ticker, status, category, yes_bid, yes_ask, last_price, volume, updated_at "
@@ -243,6 +250,7 @@ std::vector<analytics::MarketSnapshot> SQLiteStore::ListMarkets(int limit, const
 }
 
 void SQLiteStore::Exec(const std::string &sql) const {
+  std::lock_guard<std::mutex> lock(mutex_);
   char *err = nullptr;
   if (sqlite3_exec(db_, sql.c_str(), nullptr, nullptr, &err) != SQLITE_OK) {
     spdlog::error("SQLite error: {}", err ? err : "unknown");
