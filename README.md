@@ -71,6 +71,18 @@ Environment variables:
 - `KALSHI_REFRESH_LIMIT` number of markets to fetch
 - `KALSHI_REFRESH_ON_START` true/false
 
+## Build Troubleshooting (macOS)
+If CMake can’t find dependencies, install them locally:
+```bash
+brew install cmake curl openssl@3 sqlite3
+brew install nlohmann-json spdlog cpp-httplib
+```
+
+If you want to avoid network fetches entirely:
+```bash
+cmake -S . -B build -DKALSHI_FETCH_DEPS=OFF -DKALSHI_PREFER_SYSTEM_DEPS=ON
+```
+
 ## Notes on Auth
 This project signs requests using RSA-PSS SHA256. The signature payload is constructed as:
 `timestamp + method + path + body`.
