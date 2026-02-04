@@ -2,6 +2,9 @@
 
 A C++ backend for Kalshi market analytics: ingest market data, compute features, emit alerts, and serve an HTTP API for a trading desk UI or scripts.
 
+## Project Summary
+Kalshi Event Risk Desk is a production‑style market analytics backend with a sharp, desk‑grade UI. It ingests Kalshi markets, computes microstructure features, flags shocks, and serves a real‑time console for exploration and risk signals. The UI includes a market explorer, live refresh controls, an order‑book style view, an alert timeline, and a correlation heatmap. It’s built in C++ with a clean service architecture, SQLite persistence, and a lightweight HTTP server—fast, inspectable, and interview‑ready.
+
 ## Architecture
 - `kalshi::KalshiClient`: REST client (public + optional signed requests)
 - `analytics::FeatureEngine`: normalize markets into feature rows
