@@ -96,6 +96,9 @@ async function fetchHealth() {
   try {
     const res = await fetch("/health");
     setHealth(res.ok);
+    if (res.ok) {
+      clearError();
+    }
   } catch (err) {
     setHealth(false);
   }
@@ -211,6 +214,7 @@ function renderAlerts() {
 
   state.alerts.forEach((alert) => {
     const li = document.createElement("li");
+    li.classList.add("clickable");
     const type = document.createElement("div");
     type.className = "type";
     type.textContent = alert.type || "alert";
@@ -221,6 +225,12 @@ function renderAlerts() {
     const meta = document.createElement("div");
     meta.className = "meta";
     meta.innerHTML = `<span>${alert.ticker || "--"}</span><span>${formatNumber(alert.score, 2)}</span>`;
+
+    li.addEventListener("click", () => {
+      if (!alert.ticker) return;
+      els.tickerInput.value = alert.ticker;
+      loadFeatures();
+    });
 
     li.appendChild(type);
     li.appendChild(detail);

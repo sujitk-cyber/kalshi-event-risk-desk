@@ -24,12 +24,15 @@ if (KALSHI_PREFER_SYSTEM_DEPS)
 endif()
 
 if (KALSHI_FETCH_DEPS)
+  set(KALSHI_FETCH_LIST "")
+
   if (NOT TARGET httplib::httplib)
     FetchContent_Declare(
       httplib
       GIT_REPOSITORY https://github.com/yhirose/cpp-httplib.git
       GIT_TAG v0.15.3
     )
+    list(APPEND KALSHI_FETCH_LIST httplib)
   endif()
 
   if (NOT TARGET nlohmann_json::nlohmann_json)
@@ -38,6 +41,7 @@ if (KALSHI_FETCH_DEPS)
       GIT_REPOSITORY https://github.com/nlohmann/json.git
       GIT_TAG v3.11.3
     )
+    list(APPEND KALSHI_FETCH_LIST nlohmann_json)
   endif()
 
   if (NOT TARGET spdlog::spdlog)
@@ -46,9 +50,12 @@ if (KALSHI_FETCH_DEPS)
       GIT_REPOSITORY https://github.com/gabime/spdlog.git
       GIT_TAG v1.14.1
     )
+    list(APPEND KALSHI_FETCH_LIST spdlog)
   endif()
 
-  FetchContent_MakeAvailable(httplib nlohmann_json spdlog)
+  if (KALSHI_FETCH_LIST)
+    FetchContent_MakeAvailable(${KALSHI_FETCH_LIST})
+  endif()
 endif()
 
 if (NOT TARGET httplib::httplib)
