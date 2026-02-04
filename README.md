@@ -7,7 +7,7 @@ A C++ backend for Kalshi market analytics: ingest market data, compute features,
 - `analytics::FeatureEngine`: normalize markets into feature rows
 - `analytics::AlertEngine`: detect jumps and liquidity stress
 - `storage::SQLiteStore`: persistence for markets, features, alerts
-- `server::HttpServer`: HTTP endpoints
+- `server::HttpServer`: HTTP endpoints + static UI
 
 ## Build
 Dependencies:
@@ -38,6 +38,13 @@ Optional auth (needed for private endpoints like portfolio):
 ```bash
 export KALSHI_API_KEY=your_key
 export KALSHI_PRIVATE_KEY=/path/to/private_key.pem
+```
+
+## UI
+The UI is served from `ui/` by the C++ server.
+
+```bash
+open http://localhost:8080
 ```
 
 ## API Endpoints

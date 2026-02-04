@@ -3,6 +3,9 @@
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 
+#include <fstream>
+#include <sstream>
+
 namespace server {
 
 HttpServer::HttpServer(std::shared_ptr<kalshi::KalshiClient> client,
@@ -22,6 +25,20 @@ void HttpServer::Run(int port) {
 }
 
 void HttpServer::RegisterRoutes() {
+  server_.set_base_dir("ui");
+
+  server_.Get("/", [](const httplib::Request &, httplib::Response &res) {
+    std::ifstream file("ui/index.html", std::ios::binary);
+    if (!file) {
+      res.status = 404;
+      res.set_content("index.html not found", "text/plain");
+      return;
+    }
+    std::ostringstream buffer;
+    buffer << file.rdbuf();
+    res.set_content(buffer.str(), "text/html");
+  });
+
   server_.Get("/health", [](const httplib::Request &, httplib::Response &res) {
     res.set_content("ok", "text/plain");
   });
