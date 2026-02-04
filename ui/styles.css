@@ -223,6 +223,32 @@ body {
   }
 }
 
+.error-banner {
+  margin-top: 20px;
+  padding: 14px 18px;
+  background: rgba(255, 107, 107, 0.12);
+  border: 1px solid rgba(255, 107, 107, 0.4);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.error-title {
+  display: inline-block;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--danger);
+  margin-right: 10px;
+}
+
+.ghost.small {
+  padding: 6px 10px;
+  font-size: 0.8rem;
+}
+
 .grid {
   margin-top: 32px;
   display: grid;

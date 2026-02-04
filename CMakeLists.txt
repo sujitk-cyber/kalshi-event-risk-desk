@@ -8,25 +8,58 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 include(FetchContent)
 
-FetchContent_Declare(
-  httplib
-  GIT_REPOSITORY https://github.com/yhirose/cpp-httplib.git
-  GIT_TAG v0.15.3
-)
+option(KALSHI_PREFER_SYSTEM_DEPS "Prefer system-installed dependencies" ON)
+option(KALSHI_FETCH_DEPS "Allow FetchContent downloads for dependencies" ON)
 
-FetchContent_Declare(
-  nlohmann_json
-  GIT_REPOSITORY https://github.com/nlohmann/json.git
-  GIT_TAG v3.11.3
-)
+if (KALSHI_PREFER_SYSTEM_DEPS)
+  find_package(nlohmann_json CONFIG QUIET)
+  find_package(spdlog CONFIG QUIET)
+  find_package(httplib CONFIG QUIET)
+  if (NOT TARGET httplib::httplib)
+    find_package(cpp-httplib CONFIG QUIET)
+    if (TARGET cpp-httplib::cpp-httplib)
+      add_library(httplib::httplib ALIAS cpp-httplib::cpp-httplib)
+    endif()
+  endif()
+endif()
 
-FetchContent_Declare(
-  spdlog
-  GIT_REPOSITORY https://github.com/gabime/spdlog.git
-  GIT_TAG v1.14.1
-)
+if (KALSHI_FETCH_DEPS)
+  if (NOT TARGET httplib::httplib)
+    FetchContent_Declare(
+      httplib
+      GIT_REPOSITORY https://github.com/yhirose/cpp-httplib.git
+      GIT_TAG v0.15.3
+    )
+  endif()
 
-FetchContent_MakeAvailable(httplib nlohmann_json spdlog)
+  if (NOT TARGET nlohmann_json::nlohmann_json)
+    FetchContent_Declare(
+      nlohmann_json
+      GIT_REPOSITORY https://github.com/nlohmann/json.git
+      GIT_TAG v3.11.3
+    )
+  endif()
+
+  if (NOT TARGET spdlog::spdlog)
+    FetchContent_Declare(
+      spdlog
+      GIT_REPOSITORY https://github.com/gabime/spdlog.git
+      GIT_TAG v1.14.1
+    )
+  endif()
+
+  FetchContent_MakeAvailable(httplib nlohmann_json spdlog)
+endif()
+
+if (NOT TARGET httplib::httplib)
+  message(FATAL_ERROR "Missing dependency: cpp-httplib. Install it or set KALSHI_FETCH_DEPS=ON.")
+endif()
+if (NOT TARGET nlohmann_json::nlohmann_json)
+  message(FATAL_ERROR "Missing dependency: nlohmann_json. Install it or set KALSHI_FETCH_DEPS=ON.")
+endif()
+if (NOT TARGET spdlog::spdlog)
+  message(FATAL_ERROR "Missing dependency: spdlog. Install it or set KALSHI_FETCH_DEPS=ON.")
+endif()
 
 find_package(CURL REQUIRED)
 find_package(OpenSSL REQUIRED)

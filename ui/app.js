@@ -8,6 +8,8 @@ const state = {
   autoRefresh: true,
   intervalId: null,
   heatmapTickers: [],
+  error: null,
+  featureRequestId: 0,
 };
 
 const els = {
@@ -27,6 +29,9 @@ const els = {
   depthChart: document.getElementById("depth-chart"),
   orderbookRows: document.getElementById("orderbook-rows"),
   orderbookSpread: document.getElementById("orderbook-spread"),
+  errorBanner: document.getElementById("error-banner"),
+  errorText: document.getElementById("error-text"),
+  errorDismiss: document.getElementById("error-dismiss"),
   alertList: document.getElementById("alert-list"),
   timelineList: document.getElementById("timeline-list"),
   marketSearch: document.getElementById("market-search"),
@@ -64,6 +69,29 @@ function setHealth(ok) {
   }
 }
 
+function showError(source, message) {
+  state.error = { source, message, time: new Date() };
+  updateErrorBanner();
+}
+
+function clearError(source) {
+  if (!state.error) return;
+  if (!source || state.error.source === source) {
+    state.error = null;
+    updateErrorBanner();
+  }
+}
+
+function updateErrorBanner() {
+  if (!state.error) {
+    els.errorBanner.hidden = true;
+    return;
+  }
+  const time = state.error.time.toLocaleTimeString();
+  els.errorText.textContent = `${state.error.source}: ${state.error.message} (${time})`;
+  els.errorBanner.hidden = false;
+}
+
 async function fetchHealth() {
   try {
     const res = await fetch("/health");
@@ -78,7 +106,12 @@ async function refreshMarkets() {
   els.refreshBtn.disabled = true;
   els.refreshBtn.textContent = "Refreshing…";
   try {
-    await fetch(`/markets/refresh?limit=${limit}`, { method: "POST" });
+    const res = await fetch(`/markets/refresh?limit=${limit}`, { method: "POST" });
+    if (!res.ok) {
+      showError("Refresh", `HTTP ${res.status}`);
+      return;
+    }
+    clearError("Refresh");
     state.lastRefresh = new Date();
     updateSystem();
     await loadAlerts();
@@ -88,6 +121,7 @@ async function refreshMarkets() {
     }
   } catch (err) {
     console.error(err);
+    showError("Refresh", err.message || "Network error");
   } finally {
     els.refreshBtn.disabled = false;
     els.refreshBtn.textContent = "Refresh Markets";
@@ -97,27 +131,46 @@ async function refreshMarkets() {
 async function loadAlerts() {
   try {
     const res = await fetch("/alerts?limit=100");
-    if (!res.ok) return;
+    if (!res.ok) {
+      showError("Alerts", `HTTP ${res.status}`);
+      return;
+    }
     state.alerts = await res.json();
     renderAlerts();
     renderTimeline();
     updateSystem();
+    clearError("Alerts");
   } catch (err) {
     console.error(err);
+    showError("Alerts", err.message || "Network error");
   }
 }
 
 async function loadFeatures() {
   const ticker = els.tickerInput.value.trim();
   if (!ticker) return;
-  state.ticker = ticker;
+  const requestId = ++state.featureRequestId;
   try {
     const res = await fetch(`/features/${encodeURIComponent(ticker)}?limit=80`);
-    if (!res.ok) return;
-    state.features = await res.json();
+    if (!res.ok) {
+      if (requestId === state.featureRequestId) {
+        showError("Features", `HTTP ${res.status}`);
+      }
+      return;
+    }
+    const data = await res.json();
+    if (requestId !== state.featureRequestId) {
+      return;
+    }
+    state.ticker = ticker;
+    state.features = data;
     renderFeatures();
+    clearError("Features");
   } catch (err) {
     console.error(err);
+    if (requestId === state.featureRequestId) {
+      showError("Features", err.message || "Network error");
+    }
   }
 }
 
@@ -131,13 +184,18 @@ async function loadMarkets() {
 
   try {
     const res = await fetch(url.toString());
-    if (!res.ok) return;
+    if (!res.ok) {
+      showError("Markets", `HTTP ${res.status}`);
+      return;
+    }
     state.markets = await res.json();
     state.lastMarketLoad = new Date();
     renderMarkets();
     await loadHeatmap();
+    clearError("Markets");
   } catch (err) {
     console.error(err);
+    showError("Markets", err.message || "Network error");
   }
 }
 
@@ -598,6 +656,7 @@ function init() {
   loadAlerts();
   loadMarkets();
   updateSystem();
+  updateErrorBanner();
 
   els.refreshBtn.addEventListener("click", refreshMarkets);
   els.loadFeatures.addEventListener("click", loadFeatures);
@@ -619,6 +678,8 @@ function init() {
     startAutoRefresh();
     updateSystem();
   });
+
+  els.errorDismiss.addEventListener("click", () => clearError());
 
   state.autoRefresh = els.autoRefresh.checked;
   startAutoRefresh();

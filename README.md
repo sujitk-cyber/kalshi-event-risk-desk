@@ -22,6 +22,12 @@ cmake -S . -B build
 cmake --build build
 ```
 
+Offline/system deps build (no FetchContent downloads):
+```bash
+cmake -S . -B build -DKALSHI_FETCH_DEPS=OFF -DKALSHI_PREFER_SYSTEM_DEPS=ON
+cmake --build build
+```
+
 ## Run
 ```bash
 export KALSHI_ENV=demo
