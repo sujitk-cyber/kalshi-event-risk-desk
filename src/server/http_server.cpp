@@ -43,6 +43,34 @@ void HttpServer::RegisterRoutes() {
     res.set_content("ok", "text/plain");
   });
 
+  server_.Get("/markets", [this](const httplib::Request &req, httplib::Response &res) {
+    int limit = 200;
+    if (req.has_param("limit")) {
+      limit = std::stoi(req.get_param_value("limit"));
+    }
+    std::string search;
+    if (req.has_param("search")) {
+      search = req.get_param_value("search");
+    }
+
+    const auto markets = store_->ListMarkets(limit, search);
+    nlohmann::json out = nlohmann::json::array();
+    for (const auto &market : markets) {
+      out.push_back({
+          {"ticker", market.ticker},
+          {"event_ticker", market.event_ticker},
+          {"status", market.status},
+          {"category", market.category},
+          {"yes_bid", market.yes_bid},
+          {"yes_ask", market.yes_ask},
+          {"last_price", market.last_price},
+          {"volume", market.volume},
+          {"updated_at", market.updated_at},
+      });
+    }
+    res.set_content(out.dump(2), "application/json");
+  });
+
   server_.Post("/markets/refresh", [this](const httplib::Request &req, httplib::Response &res) {
     int limit = 100;
     if (req.has_param("limit")) {

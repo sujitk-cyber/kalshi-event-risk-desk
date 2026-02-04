@@ -49,6 +49,7 @@ open http://localhost:8080
 
 ## API Endpoints
 - `GET /health`
+- `GET /markets?limit=200&search=...`
 - `POST /markets/refresh?limit=100`
 - `GET /alerts?limit=50`
 - `GET /features/{TICKER}?limit=50`

@@ -33,6 +33,15 @@
             <label for="refresh-limit">Limit</label>
             <input id="refresh-limit" type="number" min="10" max="300" value="100" />
           </div>
+          <label class="toggle">
+            <input type="checkbox" id="auto-refresh" checked />
+            <span class="toggle-track"></span>
+            <span class="toggle-label">Auto Refresh</span>
+          </label>
+          <div class="live-indicator">
+            <span class="pulse"></span>
+            <span id="live-text">Live updates enabled</span>
+          </div>
         </div>
       </header>
 
@@ -68,7 +77,21 @@
             </div>
           </div>
           <div class="trend">
+            <div class="chart-head">
+              <span>Mid</span>
+              <span class="chart-meta">Last 80 points</span>
+            </div>
             <canvas id="feature-chart" width="640" height="220"></canvas>
+          </div>
+          <div class="trend secondary">
+            <div class="chart-head">
+              <span>Spread / Volume</span>
+              <div class="legend">
+                <span class="legend-item"><span class="swatch spread"></span>Spread</span>
+                <span class="legend-item"><span class="swatch volume"></span>Volume</span>
+              </div>
+            </div>
+            <canvas id="depth-chart" width="640" height="180"></canvas>
           </div>
         </article>
 
@@ -80,6 +103,25 @@
           <ul id="alert-list" class="alert-list">
             <li class="empty">No alerts yet. Run a refresh to ingest markets.</li>
           </ul>
+        </article>
+
+        <article class="card explorer">
+          <div class="card-header">
+            <h2>Market Explorer</h2>
+            <div class="pill">Search</div>
+          </div>
+          <div class="field">
+            <label for="market-search">Search</label>
+            <div class="input-row">
+              <input id="market-search" placeholder="Ticker, event, category" />
+              <button class="ghost" id="market-search-btn">Go</button>
+            </div>
+          </div>
+          <div class="market-meta">
+            <span id="market-count">0 markets</span>
+            <span id="market-updated">--</span>
+          </div>
+          <ul id="market-list" class="market-list"></ul>
         </article>
 
         <article class="card system">
@@ -105,8 +147,8 @@
               <span class="value" id="system-features">0</span>
             </div>
           </div>
-          <div class="footnote">
-            Data updates every 10 seconds. Manual refresh triggers a market ingest.
+          <div class="footnote" id="system-note">
+            Auto refresh is enabled. Alerts and features update every 10 seconds.
           </div>
         </article>
       </section>

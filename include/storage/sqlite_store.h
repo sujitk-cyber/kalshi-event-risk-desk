@@ -22,6 +22,7 @@ class SQLiteStore {
 
   std::vector<analytics::Alert> RecentAlerts(int limit = 50) const;
   std::vector<analytics::FeatureRow> LatestFeatures(const std::string &ticker, int limit = 50) const;
+  std::vector<analytics::MarketSnapshot> ListMarkets(int limit = 200, const std::string &search = "") const;
 
  private:
   sqlite3 *db_ = nullptr;

@@ -197,6 +197,51 @@ std::vector<analytics::FeatureRow> SQLiteStore::LatestFeatures(const std::string
   return results;
 }
 
+std::vector<analytics::MarketSnapshot> SQLiteStore::ListMarkets(int limit, const std::string &search) const {
+  std::vector<analytics::MarketSnapshot> results;
+  std::string sql =
+      "SELECT ticker, event_ticker, status, category, yes_bid, yes_ask, last_price, volume, updated_at "
+      "FROM markets";
+  bool has_search = !search.empty();
+  if (has_search) {
+    sql += " WHERE ticker LIKE ? OR event_ticker LIKE ? OR category LIKE ?";
+  }
+  sql += " ORDER BY updated_at DESC LIMIT ?";
+
+  sqlite3_stmt *stmt = nullptr;
+  if (sqlite3_prepare_v2(db_, sql.c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
+    spdlog::error("Failed to prepare list markets");
+    return results;
+  }
+
+  int bind_index = 1;
+  std::string wildcard;
+  if (has_search) {
+    wildcard = "%" + search + "%";
+    sqlite3_bind_text(stmt, bind_index++, wildcard.c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, bind_index++, wildcard.c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, bind_index++, wildcard.c_str(), -1, SQLITE_TRANSIENT);
+  }
+  sqlite3_bind_int(stmt, bind_index, limit);
+
+  while (sqlite3_step(stmt) == SQLITE_ROW) {
+    analytics::MarketSnapshot snapshot;
+    snapshot.ticker = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 0));
+    snapshot.event_ticker = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 1));
+    snapshot.status = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 2));
+    snapshot.category = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 3));
+    snapshot.yes_bid = sqlite3_column_double(stmt, 4);
+    snapshot.yes_ask = sqlite3_column_double(stmt, 5);
+    snapshot.last_price = sqlite3_column_double(stmt, 6);
+    snapshot.volume = sqlite3_column_double(stmt, 7);
+    snapshot.updated_at = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 8));
+    results.push_back(snapshot);
+  }
+
+  sqlite3_finalize(stmt);
+  return results;
+}
+
 void SQLiteStore::Exec(const std::string &sql) const {
   char *err = nullptr;
   if (sqlite3_exec(db_, sql.c_str(), nullptr, nullptr, &err) != SQLITE_OK) {
