@@ -83,6 +83,33 @@ If you want to avoid network fetches entirely:
 cmake -S . -B build -DKALSHI_FETCH_DEPS=OFF -DKALSHI_PREFER_SYSTEM_DEPS=ON
 ```
 
+## Build Troubleshooting (Linux)
+Ubuntu/Debian:
+```bash
+sudo apt-get update
+sudo apt-get install -y cmake g++ libcurl4-openssl-dev libssl-dev libsqlite3-dev \
+  nlohmann-json3-dev libspdlog-dev
+```
+
+Fedora:
+```bash
+sudo dnf install -y cmake gcc-c++ libcurl-devel openssl-devel sqlite-devel \
+  nlohmann-json-devel spdlog-devel
+```
+
+If cpp-httplib isn’t available via your package manager, enable FetchContent:
+```bash
+cmake -S . -B build -DKALSHI_FETCH_DEPS=ON
+```
+
+## Build Troubleshooting (Windows)
+Recommended with vcpkg:
+```powershell
+vcpkg install curl openssl sqlite3 nlohmann-json spdlog cpp-httplib
+cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE=C:/path/to/vcpkg/scripts/buildsystems/vcpkg.cmake
+cmake --build build
+```
+
 ## Notes on Auth
 This project signs requests using RSA-PSS SHA256. The signature payload is constructed as:
 `timestamp + method + path + body`.
