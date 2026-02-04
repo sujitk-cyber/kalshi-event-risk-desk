@@ -24,7 +24,12 @@ std::string NowIso() {
   using namespace std::chrono;
   auto now = system_clock::now();
   auto now_time = system_clock::to_time_t(now);
-  std::tm tm = *std::gmtime(&now_time);
+  std::tm tm{};
+#if defined(_WIN32)
+  gmtime_s(&tm, &now_time);
+#else
+  gmtime_r(&now_time, &tm);
+#endif
   char buffer[32];
   std::strftime(buffer, sizeof(buffer), "%Y-%m-%dT%H:%M:%SZ", &tm);
   return std::string(buffer);

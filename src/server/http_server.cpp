@@ -21,22 +21,34 @@ HttpServer::HttpServer(std::shared_ptr<kalshi::KalshiClient> client,
 
 void HttpServer::Run(int port) {
   spdlog::info("Starting HTTP server on port {}", port);
-  server_.listen("0.0.0.0", port);
+  if (!server_.listen("0.0.0.0", port)) {
+    spdlog::error("HTTP server failed to bind to port {}", port);
+  }
 }
 
 void HttpServer::RegisterRoutes() {
-  server_.set_base_dir("ui");
-
-  server_.Get("/", [](const httplib::Request &, httplib::Response &res) {
-    std::ifstream file("ui/index.html", std::ios::binary);
+  auto serve_file = [](const std::string &path, const std::string &content_type, httplib::Response &res) {
+    std::ifstream file(path, std::ios::binary);
     if (!file) {
       res.status = 404;
-      res.set_content("index.html not found", "text/plain");
+      res.set_content("file not found", "text/plain");
       return;
     }
     std::ostringstream buffer;
     buffer << file.rdbuf();
-    res.set_content(buffer.str(), "text/html");
+    res.set_content(buffer.str(), content_type);
+  };
+
+  server_.Get("/", [serve_file](const httplib::Request &, httplib::Response &res) {
+    serve_file("ui/index.html", "text/html", res);
+  });
+
+  server_.Get("/styles.css", [serve_file](const httplib::Request &, httplib::Response &res) {
+    serve_file("ui/styles.css", "text/css", res);
+  });
+
+  server_.Get("/app.js", [serve_file](const httplib::Request &, httplib::Response &res) {
+    serve_file("ui/app.js", "application/javascript", res);
   });
 
   server_.Get("/health", [](const httplib::Request &, httplib::Response &res) {
