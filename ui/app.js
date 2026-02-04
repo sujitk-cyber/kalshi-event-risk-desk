@@ -7,6 +7,7 @@ const state = {
   lastMarketLoad: null,
   autoRefresh: true,
   intervalId: null,
+  heatmapTickers: [],
 };
 
 const els = {
@@ -24,12 +25,16 @@ const els = {
   statVolume: document.getElementById("stat-volume"),
   chart: document.getElementById("feature-chart"),
   depthChart: document.getElementById("depth-chart"),
+  orderbookRows: document.getElementById("orderbook-rows"),
+  orderbookSpread: document.getElementById("orderbook-spread"),
   alertList: document.getElementById("alert-list"),
+  timelineList: document.getElementById("timeline-list"),
   marketSearch: document.getElementById("market-search"),
   marketSearchBtn: document.getElementById("market-search-btn"),
   marketList: document.getElementById("market-list"),
   marketCount: document.getElementById("market-count"),
   marketUpdated: document.getElementById("market-updated"),
+  heatmapGrid: document.getElementById("heatmap-grid"),
   systemEndpoint: document.getElementById("system-endpoint"),
   systemRefresh: document.getElementById("system-refresh"),
   systemAlerts: document.getElementById("system-alerts"),
@@ -91,10 +96,11 @@ async function refreshMarkets() {
 
 async function loadAlerts() {
   try {
-    const res = await fetch("/alerts?limit=50");
+    const res = await fetch("/alerts?limit=100");
     if (!res.ok) return;
     state.alerts = await res.json();
     renderAlerts();
+    renderTimeline();
     updateSystem();
   } catch (err) {
     console.error(err);
@@ -129,6 +135,7 @@ async function loadMarkets() {
     state.markets = await res.json();
     state.lastMarketLoad = new Date();
     renderMarkets();
+    await loadHeatmap();
   } catch (err) {
     console.error(err);
   }
@@ -161,6 +168,56 @@ function renderAlerts() {
     li.appendChild(detail);
     li.appendChild(meta);
     els.alertList.appendChild(li);
+  });
+}
+
+function renderTimeline() {
+  els.timelineList.innerHTML = "";
+  if (!state.alerts.length) {
+    const empty = document.createElement("div");
+    empty.className = "empty";
+    empty.textContent = "No alert history yet.";
+    els.timelineList.appendChild(empty);
+    return;
+  }
+
+  const buckets = new Map();
+  state.alerts.forEach((alert) => {
+    const ts = new Date(alert.ts);
+    if (Number.isNaN(ts.getTime())) return;
+    const bucket = new Date(ts);
+    bucket.setMinutes(Math.floor(bucket.getMinutes() / 15) * 15, 0, 0);
+    const key = bucket.toISOString();
+    buckets.set(key, (buckets.get(key) || 0) + 1);
+  });
+
+  const entries = Array.from(buckets.entries())
+    .map(([key, count]) => ({ ts: new Date(key), count }))
+    .sort((a, b) => a.ts - b.ts)
+    .slice(-10);
+
+  const maxCount = Math.max(...entries.map((e) => e.count));
+  entries.forEach((entry) => {
+    const row = document.createElement("div");
+    row.className = "timeline-row";
+
+    const label = document.createElement("span");
+    label.textContent = entry.ts.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+    const bar = document.createElement("div");
+    bar.className = "timeline-bar";
+    const fill = document.createElement("span");
+    fill.style.width = `${(entry.count / maxCount) * 100}%`;
+    bar.appendChild(fill);
+
+    const count = document.createElement("span");
+    count.className = "timeline-count";
+    count.textContent = entry.count;
+
+    row.appendChild(label);
+    row.appendChild(bar);
+    row.appendChild(count);
+    els.timelineList.appendChild(row);
   });
 }
 
@@ -206,6 +263,7 @@ function renderFeatures() {
     els.statVolume.textContent = "--";
     drawChart([]);
     drawDepthChart([], []);
+    renderOrderBook(null);
     return;
   }
 
@@ -222,7 +280,40 @@ function renderFeatures() {
 
   drawChart(midSeries);
   drawDepthChart(spreadSeries, volumeSeries);
+  renderOrderBook(latest);
   updateSystem();
+}
+
+function renderOrderBook(latest) {
+  els.orderbookRows.innerHTML = "";
+  if (!latest) {
+    els.orderbookSpread.textContent = "Spread --";
+    return;
+  }
+
+  let baseBid = latest.mid - latest.spread / 2;
+  let baseAsk = latest.mid + latest.spread / 2;
+  const fallback = state.markets.find((m) => m.ticker === state.ticker);
+  if (fallback) {
+    if (fallback.yes_bid > 0) baseBid = fallback.yes_bid;
+    if (fallback.yes_ask > 0) baseAsk = fallback.yes_ask;
+  }
+
+  const spread = baseAsk - baseBid;
+  const step = Math.max(0.5, spread > 0 ? spread / 2 : 1);
+  els.orderbookSpread.textContent = `Spread ${formatNumber(spread, 2)}`;
+
+  for (let i = 4; i >= 0; i -= 1) {
+    const bid = baseBid - i * step;
+    const ask = baseAsk + i * step;
+    const row = document.createElement("div");
+    row.className = "orderbook-row";
+    row.innerHTML = `
+      <span class="bid">${formatNumber(bid, 2)}</span>
+      <span class="ask">${formatNumber(ask, 2)}</span>
+    `;
+    els.orderbookRows.appendChild(row);
+  }
 }
 
 function drawChart(series) {
@@ -338,6 +429,126 @@ function drawDepthChart(spreadSeries, volumeSeries) {
   ctx.stroke();
 }
 
+async function loadHeatmap() {
+  if (!state.markets.length) {
+    renderHeatmap([], []);
+    return;
+  }
+
+  const candidates = state.markets
+    .slice()
+    .sort((a, b) => (b.volume || 0) - (a.volume || 0))
+    .slice(0, 6)
+    .map((m) => m.ticker)
+    .filter(Boolean);
+
+  if (!candidates.length) {
+    renderHeatmap([], []);
+    return;
+  }
+
+  const seriesMap = new Map();
+  await Promise.all(
+    candidates.map(async (ticker) => {
+      try {
+        const res = await fetch(`/features/${encodeURIComponent(ticker)}?limit=50`);
+        if (!res.ok) return;
+        const rows = await res.json();
+        const series = rows.slice().reverse().map((row) => row.mid).filter((v) => v > 0);
+        if (series.length >= 5) {
+          seriesMap.set(ticker, series);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    })
+  );
+
+  const tickers = Array.from(seriesMap.keys());
+  if (tickers.length < 2) {
+    renderHeatmap([], []);
+    return;
+  }
+
+  const minLen = Math.min(...Array.from(seriesMap.values()).map((s) => s.length));
+  const aligned = tickers.map((t) => seriesMap.get(t).slice(-minLen));
+  const matrix = tickers.map((_, i) =>
+    tickers.map((__, j) => (i === j ? 1 : pearson(aligned[i], aligned[j])))
+  );
+
+  state.heatmapTickers = tickers;
+  renderHeatmap(tickers, matrix);
+}
+
+function pearson(a, b) {
+  const n = Math.min(a.length, b.length);
+  if (n === 0) return 0;
+  let sumA = 0;
+  let sumB = 0;
+  let sumA2 = 0;
+  let sumB2 = 0;
+  let sumAB = 0;
+  for (let i = 0; i < n; i += 1) {
+    sumA += a[i];
+    sumB += b[i];
+    sumA2 += a[i] * a[i];
+    sumB2 += b[i] * b[i];
+    sumAB += a[i] * b[i];
+  }
+  const numerator = n * sumAB - sumA * sumB;
+  const denom = Math.sqrt((n * sumA2 - sumA * sumA) * (n * sumB2 - sumB * sumB));
+  if (denom === 0) return 0;
+  return numerator / denom;
+}
+
+function renderHeatmap(tickers, matrix) {
+  els.heatmapGrid.innerHTML = "";
+  if (!tickers.length) {
+    const empty = document.createElement("div");
+    empty.className = "empty";
+    empty.textContent = "Not enough data to build heatmap.";
+    els.heatmapGrid.appendChild(empty);
+    return;
+  }
+
+  const size = tickers.length + 1;
+  els.heatmapGrid.style.gridTemplateColumns = `repeat(${size}, 38px)`;
+
+  els.heatmapGrid.appendChild(makeLabel(""));
+  tickers.forEach((ticker) => els.heatmapGrid.appendChild(makeLabel(shortTicker(ticker))));
+
+  tickers.forEach((rowTicker, i) => {
+    els.heatmapGrid.appendChild(makeLabel(shortTicker(rowTicker)));
+    tickers.forEach((colTicker, j) => {
+      const value = matrix[i][j];
+      const cell = document.createElement("div");
+      cell.className = "heatmap-cell";
+      cell.style.background = corrColor(value);
+      cell.textContent = value.toFixed(2);
+      cell.title = `${rowTicker} vs ${colTicker}: ${value.toFixed(2)}`;
+      els.heatmapGrid.appendChild(cell);
+    });
+  });
+}
+
+function makeLabel(text) {
+  const label = document.createElement("div");
+  label.className = "heatmap-label";
+  label.textContent = text;
+  return label;
+}
+
+function shortTicker(ticker) {
+  if (ticker.length <= 6) return ticker;
+  return `${ticker.slice(0, 3)}…${ticker.slice(-2)}`;
+}
+
+function corrColor(value) {
+  const normalized = (value + 1) / 2;
+  const hue = 10 + normalized * 110;
+  return `hsl(${hue}, 70%, 50%)`;
+}
+
 function updateSystem() {
   els.systemEndpoint.textContent = window.location.origin;
   els.systemAlerts.textContent = state.alerts.length;
@@ -356,11 +567,17 @@ function startAutoRefresh() {
     updateLiveIndicator();
     return;
   }
+
+  let tick = 0;
   state.intervalId = setInterval(async () => {
+    tick += 1;
     await fetchHealth();
     await loadAlerts();
     if (state.ticker) {
       await loadFeatures();
+    }
+    if (tick % 3 === 0) {
+      await loadMarkets();
     }
   }, 10000);
   updateLiveIndicator();

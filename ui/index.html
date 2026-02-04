@@ -93,6 +93,13 @@
             </div>
             <canvas id="depth-chart" width="640" height="180"></canvas>
           </div>
+          <div class="orderbook">
+            <div class="orderbook-head">
+              <span>Order Book (Synthetic)</span>
+              <span class="orderbook-spread" id="orderbook-spread">Spread --</span>
+            </div>
+            <div class="orderbook-rows" id="orderbook-rows"></div>
+          </div>
         </article>
 
         <article class="card alerts">
@@ -103,6 +110,16 @@
           <ul id="alert-list" class="alert-list">
             <li class="empty">No alerts yet. Run a refresh to ingest markets.</li>
           </ul>
+        </article>
+
+        <article class="card timeline">
+          <div class="card-header">
+            <h2>Shock Timeline</h2>
+            <div class="pill">15 min buckets</div>
+          </div>
+          <div id="timeline-list" class="timeline-list">
+            <div class="empty">No alert history yet.</div>
+          </div>
         </article>
 
         <article class="card explorer">
@@ -122,6 +139,15 @@
             <span id="market-updated">--</span>
           </div>
           <ul id="market-list" class="market-list"></ul>
+        </article>
+
+        <article class="card heatmap">
+          <div class="card-header">
+            <h2>Correlation Heatmap</h2>
+            <div class="pill">Top markets</div>
+          </div>
+          <div id="heatmap-grid" class="heatmap-grid"></div>
+          <div class="footnote">Based on the last 50 midpoints per ticker.</div>
         </article>
 
         <article class="card system">
